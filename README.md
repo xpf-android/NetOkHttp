@@ -236,9 +236,35 @@ public class MainActivity extends AppCompatActivity {
 ![](https://github.com/xpf-android/NetOkHttp/raw/master/images/测试请求是否成功.png)
 
 
-
+### 重试机制
 ![](https://github.com/xpf-android/NetOkHttp/raw/master/images/重试机制.png)
-
+```java
+//创建专门处理延迟队列的任务(线程)
+    public Runnable delayTask = new Runnable() {
+        @Override
+        public void run() {
+            HttpTask task = null;
+            //不停(循环)的从延迟任务队列中取出任务交给线程池处理
+            while (true) {
+                try {
+                    //从延迟队列中取出任务
+                    task = mDelayQueue.take();
+                    if (task.getRetryCount() < 3) {//重试机制的的条件
+                        mThreadPoolExecutor.execute(task);
+                        //重试机制的核心
+                        //设置任务请求的次数
+                        task.setRetryCount(task.getRetryCount() + 1);
+                        Log.e(TAG, "重试机制: "+task.getRetryCount() + " 次数");
+                    } else {
+                        Log.e(TAG, "重试机制: "+"失败次数太多，不再处理");
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    };
+```
 
 
 使用错误url效果如下：
